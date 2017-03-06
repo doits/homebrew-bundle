@@ -1,12 +1,14 @@
 module Bundle
-  class CaskInstaller
-    def self.install(name, options = {})
-      args = options.fetch(:args, []).map { |k, v| "--#{k}=#{v}" }
+  module CaskInstaller
+    module_function
+
+    def install(name, options = {})
+      args = options.fetch(:args, [])
 
       if installed_casks.include? name
         if cask_up_to_date?(name)
           puts "Skipping install of #{name} cask. It is already installed." if ARGV.verbose?
-          return true
+          return :skipped
         else
           # without `--force` it will not overwrite the already existing .app
           args.push '--force'
@@ -16,15 +18,27 @@ module Bundle
         puts "Cask #{name} is not installed."
       end
 
-      puts "Installing #{name} cask." if ARGV.verbose?
-      if (success = Bundle.system "brew", "cask", "install", name, *args)
-        installed_casks << name
+      args = args.map do |k, v|
+        if v.is_a?(TrueClass)
+          "--#{k}"
+        elsif v.is_a?(FalseClass)
+          nil
+        else
+          "--#{k}=#{v}"
+        end
+      end.compact
+
+      puts "Installing #{name} cask. It is not currently installed." if ARGV.verbose?
+
+      unless Bundle.system "brew", "cask", "install", name, *args
+        return :failed
       end
 
-      success
+      installed_casks << name
+      :success
     end
 
-    def self.installed_casks
+    def installed_casks
       @installed_casks ||= Bundle::CaskDumper.casks
     end
 

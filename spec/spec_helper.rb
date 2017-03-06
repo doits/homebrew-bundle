@@ -5,8 +5,7 @@ SimpleCov.start do
   minimum_coverage 100
 end
 
-require "coveralls"
-Coveralls.wear!
+require "codecov"
 
 PROJECT_ROOT ||= File.expand_path("../..", __FILE__)
 STUB_PATH ||= File.expand_path(File.join(__FILE__, "..", "stub"))
@@ -14,10 +13,10 @@ $:.unshift(STUB_PATH)
 
 Dir.glob("#{PROJECT_ROOT}/lib/**/*.rb").each { |f| require f }
 
-SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
-  Coveralls::SimpleCov::Formatter,
-  SimpleCov::Formatter::HTMLFormatter
+SimpleCov.formatters = [
+  SimpleCov::Formatter::HTMLFormatter,
 ]
+SimpleCov.formatters << SimpleCov::Formatter::Codecov if ENV["CI"]
 
 require "bundle"
 require "bundler"
@@ -29,12 +28,29 @@ RSpec.configure do |config|
 end
 
 # Stub out the inclusion of Homebrew's code.
-LIBS_TO_SKIP = ["formula", "tap"]
+LIBS_TO_SKIP = ["formula", "tap", "utils/formatter"].freeze
 
 module Kernel
-  alias_method :old_require, :require
+  alias old_require require
   def require(path)
     old_require(path) unless LIBS_TO_SKIP.include?(path)
+  end
+end
+
+HOMEBREW_PREFIX = Pathname.new("/usr/local")
+HOMEBREW_REPOSITORY = Pathname.new("/usr/local/Homebrew")
+
+module Formatter
+  module_function
+
+  def columns(*); end
+
+  def success(*args)
+    args
+  end
+
+  def error(*args)
+    args
   end
 end
 
@@ -44,7 +60,7 @@ class Formula
   end
 end
 
-module Tap
+class Tap
   def self.map
     []
   end

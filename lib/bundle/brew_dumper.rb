@@ -1,58 +1,75 @@
 require "json"
 require "tsort"
 
+# rubocop:disable Metrics/ModuleLength
 module Bundle
-  class BrewDumper
-    def self.reset!
+  module BrewDumper
+    module_function
+
+    def reset!
       Bundle::BrewServices.reset!
       @formulae = nil
       @formula_aliases = nil
     end
 
-    def self.formulae
+    def formulae
       @formulae ||= begin
         @formulae = formulae_info
         sort!
       end
     end
 
-    def self.dump
+    def dump
       formulae.map do |f|
         brewline = "brew '#{f[:full_name]}'"
         args = f[:args].map { |arg| "'#{arg}'" }.sort.join(", ")
         brewline += ", args: [#{args}]" unless f[:args].empty?
-        brewline += ", service_restart: true" if BrewServices.started?(f[:full_name])
+        brewline += ", restart_service: true" if BrewServices.started?(f[:full_name])
         brewline
       end.join("\n")
     end
 
-    def self.cask_requirements
+    def cask_requirements
       formulae.map { |f| f[:requirements].map { |req| req["cask"] } }.flatten.compact.uniq
     end
 
-    def self.formula_names
+    def formula_names
       formulae.map { |f| f[:name] }
     end
 
-    def self.formula_aliases
+    def formula_oldnames
+      return @formula_oldnames if @formula_oldnames
+      @formula_oldnames = {}
+      formulae.each do |f|
+        oldname = f[:oldname]
+        next unless oldname
+        @formula_oldnames[oldname] = f[:full_name]
+        if f[:full_name].include? "/" # tap formula
+          tap_name = f[:full_name].rpartition("/").first
+          @formula_oldnames["#{tap_name}/#{oldname}"] = f[:full_name]
+        end
+      end
+      @formula_oldnames
+    end
+
+    def formula_aliases
       return @formula_aliases if @formula_aliases
       @formula_aliases = {}
       formulae.each do |f|
         aliases = f[:aliases]
         next if !aliases || aliases.empty?
-        if f[:full_name].include? "/" # tap formula
-          aliases.each do |a|
-            @formula_aliases[a] = f[:full_name]
-            @formula_aliases["#{f[:full_name].rpartition("/").first}/#{a}"] = f[:full_name]
+        aliases.each do |a|
+          @formula_aliases[a] = f[:full_name]
+          if f[:full_name].include? "/" # tap formula
+            tap_name = f[:full_name].rpartition("/").first
+            @formula_aliases["#{tap_name}/#{a}"] = f[:full_name]
           end
-        else
-          aliases.each { |a| @formula_aliases[a] = f[:full_name] }
         end
       end
       @formula_aliases
     end
 
-    def self.formula_info(name)
+    def formula_info(name)
       @formula_info_name ||= {}
       @formula_info_name[name] ||= begin
         require "formula"
@@ -62,14 +79,12 @@ module Bundle
       end
     end
 
-    private
-
-    def self.formulae_info
+    def formulae_info
       require "formula"
       Formula.installed.map { |f| formula_inspector f.to_hash }
     end
 
-    def self.formula_inspector(f)
+    def formula_inspector(f)
       installed = f["installed"]
       if f["linked_keg"].nil?
         keg = installed.last
@@ -89,28 +104,32 @@ module Bundle
       end
 
       {
-        :name => f["name"],
-        :full_name => f["full_name"],
-        :aliases => f["aliases"],
-        :args => args,
-        :version => version,
-        :dependencies => f["dependencies"],
-        :requirements => f["requirements"],
-        :conflicts_with => f["conflicts_with"],
-        :pinned? => !!f["pinned"],
-        :outdated? => !!f["outdated"],
+        name: f["name"],
+        oldname: f["oldname"],
+        full_name: f["full_name"],
+        aliases: f["aliases"],
+        args: args,
+        version: version,
+        dependencies: f["dependencies"],
+        recommended_dependencies: f["recommended_dependencies"],
+        optional_dependencies: f["optional_dependencies"],
+        build_dependencies: f["build_dependencies"],
+        requirements: f["requirements"],
+        conflicts_with: f["conflicts_with"],
+        pinned?: (f["pinned"] || false),
+        outdated?: (f["outdated"] || false),
       }
     end
 
     class Topo < Hash
       include TSort
-      alias_method :tsort_each_node, :each_key
+      alias tsort_each_node each_key
       def tsort_each_child(node, &block)
-        fetch(node).each(&block)
+        fetch(node).sort.each(&block)
       end
     end
 
-    def self.sort!
+    def sort!
       # Step 1: Sort by formula full name while putting tap formulae behind core formulae.
       #         So we can have a nicer output.
       @formulae.sort! do |a, b|
@@ -126,13 +145,23 @@ module Bundle
       # Step 2: Sort by formula dependency topology.
       topo = Topo.new
       @formulae.each do |f|
-        deps = (f[:dependencies] + f[:requirements].map { |req| req["default_formula"] }.compact).uniq
+        deps = (
+          f[:dependencies] \
+          + f[:requirements].map { |req| req["default_formula"] }.compact \
+          - f[:optional_dependencies] \
+          - f[:build_dependencies] \
+        ).uniq
         topo[f[:full_name]] = deps.map do |dep|
           ff = @formulae.detect { |formula| formula[:name] == dep || formula[:full_name] == dep }
           ff[:full_name] if ff
         end.compact
       end
       @formulae = topo.tsort.map { |name| @formulae.detect { |formula| formula[:full_name] == name } }
+    rescue TSort::Cyclic => e
+      odie <<-EOS.undent
+        #{e.message}
+        Formulae dependency graph sorting failed (likely due to a circular dependency)!
+      EOS
     end
   end
 end
