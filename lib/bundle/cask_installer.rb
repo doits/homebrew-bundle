@@ -3,7 +3,7 @@ module Bundle
     module_function
 
     def install(name, options = {})
-      args = options.fetch(:args, [])
+      args = options.fetch(:args, {})
 
       if installed_casks.include? name
         if cask_up_to_date?(name)
@@ -11,7 +11,7 @@ module Bundle
           return :skipped
         else
           # without `--force` it will not overwrite the already existing .app
-          args.push '--force'
+          args['force'] = true
           puts "Cask #{name} is outdated." if ARGV.verbose?
         end
       elsif ARGV.verbose?
