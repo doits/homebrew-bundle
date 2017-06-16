@@ -1,7 +1,5 @@
 require "json"
 require "tsort"
-
-# rubocop:disable Metrics/ModuleLength
 module Bundle
   module BrewDumper
     module_function
@@ -20,9 +18,12 @@ module Bundle
     end
 
     def dump
-      formulae.map do |f|
-        brewline = "brew '#{f[:full_name]}'"
-        args = f[:args].map { |arg| "'#{arg}'" }.sort.join(", ")
+      requested_formula = formulae.select do |f|
+        f[:installed_on_request?] || !f[:installed_as_dependency?]
+      end
+      requested_formula.map do |f|
+        brewline = "brew \"#{f[:full_name]}\""
+        args = f[:args].map { |arg| "\"#{arg}\"" }.sort.join(", ")
         brewline += ", args: [#{args}]" unless f[:args].empty?
         brewline += ", restart_service: true" if BrewServices.started?(f[:full_name])
         brewline
@@ -98,9 +99,17 @@ module Bundle
         args << "devel" if keg["version"].to_s.gsub(/_\d+$/, "") == f["versions"]["devel"]
         args.uniq!
         version = keg["version"]
+        installed_as_dependency = keg["installed_as_dependency"] || false
+        installed_on_request = keg["installed_on_request"] || false
+        runtime_dependencies = if deps = keg["runtime_dependencies"]
+          deps.map { |dep| dep["full_name"].split("/").last }.compact
+        end
       else
         args = []
         version = nil
+        installed_as_dependency = false
+        installed_on_request = false
+        runtime_dependencies = nil
       end
 
       {
@@ -110,7 +119,9 @@ module Bundle
         aliases: f["aliases"],
         args: args,
         version: version,
-        dependencies: f["dependencies"],
+        installed_as_dependency?: installed_as_dependency,
+        installed_on_request?: installed_on_request,
+        dependencies: (runtime_dependencies || f["dependencies"]),
         recommended_dependencies: f["recommended_dependencies"],
         optional_dependencies: f["optional_dependencies"],
         build_dependencies: f["build_dependencies"],

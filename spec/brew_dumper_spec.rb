@@ -61,6 +61,8 @@ describe Bundle::BrewDumper do
         aliases: [],
         args: [],
         version: nil,
+        installed_as_dependency?: false,
+        installed_on_request?: false,
         dependencies: [],
         recommended_dependencies: [],
         optional_dependencies: [],
@@ -119,6 +121,9 @@ describe Bundle::BrewDumper do
               "used_options" => [],
               "built_as_bottle" => nil,
               "poured_from_bottle" => true,
+              "installed_as_dependency" => false,
+              "installed_on_request" => true,
+              "runtime_dependencies" => [],
             }],
             "linked_keg" => "1.0",
             "keg_only" => nil,
@@ -146,6 +151,9 @@ describe Bundle::BrewDumper do
               "used_options" => ["--with-a", "--with-b"],
               "built_as_bottle" => nil,
               "poured_from_bottle" => true,
+              "installed_as_dependency" => true,
+              "installed_on_request" => true,
+              "runtime_dependencies" => [],
             }],
             "linked_keg" => nil,
             "keg_only" => nil,
@@ -175,6 +183,8 @@ describe Bundle::BrewDumper do
           aliases: [],
           args: [],
           version: "1.0",
+          installed_as_dependency?: false,
+          installed_on_request?: true,
           dependencies: [],
           recommended_dependencies: [],
           optional_dependencies: [],
@@ -190,6 +200,8 @@ describe Bundle::BrewDumper do
         aliases: [],
         args: ["with-a", "with-b"],
         version: "2.0",
+        installed_as_dependency?: true,
+        installed_on_request?: true,
         dependencies: [],
         recommended_dependencies: [],
         optional_dependencies: [],
@@ -202,7 +214,7 @@ describe Bundle::BrewDumper do
     end
 
     it "dumps as foo and bar with args" do
-      expect(subject.dump).to eql("brew 'bar', args: ['with-a', 'with-b']\nbrew 'homebrew/tap/foo'")
+      expect(subject.dump).to eql("brew \"bar\", args: [\"with-a\", \"with-b\"]\nbrew \"homebrew/tap/foo\"")
     end
 
     it "formula_info returns the formula" do

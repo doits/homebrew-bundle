@@ -2,9 +2,7 @@ module Bundle
   module_function
 
   def system(cmd, *args)
-    if ARGV.verbose?
-      return super cmd, *args
-    end
+    return super cmd, *args if ARGV.verbose?
     logs = []
     success = nil
     IO.popen([cmd, *args], err: [:child, :out]) do |pipe|
@@ -31,7 +29,7 @@ module Bundle
 
   def cask_installed?
     @cask ||= begin
-      File.directory?("#{HOMEBREW_PREFIX}/Caskroom") ||
+      File.directory?("#{HOMEBREW_PREFIX}/Caskroom") &&
         File.directory?("#{HOMEBREW_REPOSITORY}/Library/Taps/caskroom")
     end
   end
