@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Bundle
   class BrewInstaller
     def self.reset!
@@ -17,17 +19,19 @@ module Bundle
       @conflicts_with_arg = options.fetch(:conflicts_with, [])
       @restart_service = options[:restart_service]
       @start_service = options[:start_service]
+      @link = options.fetch(:link, nil)
       @changed = nil
     end
 
     def run
       install_result = install_change_state!
       service_change_state! if install_result != :failed
+      link_change_state! unless @link.nil?
       install_result
     end
 
     def install_change_state!
-      return false unless resolve_conflicts!
+      return :failed unless resolve_conflicts!
       if installed?
         return :skipped if ARGV.include?("--no-upgrade")
         upgrade!
@@ -60,6 +64,17 @@ module Bundle
         BrewServices.restart(@full_name)
       else
         true
+      end
+    end
+
+    def link_change_state!
+      case @link
+      when true
+        puts "Force linking #{@name} formula." if ARGV.verbose?
+        Bundle.system("brew", "link", "--force", @name)
+      when false
+        puts "Unlinking #{@name} formula." if ARGV.verbose?
+        Bundle.system("brew", "unlink", @name)
       end
     end
 
@@ -139,9 +154,9 @@ module Bundle
       conflicts_with.each do |conflict|
         next unless BrewInstaller.formula_installed?(conflict)
         if ARGV.verbose?
-          puts <<-EOS.undent
-              Unlinking #{conflict} formula.
-              It is currently installed and conflicts with #{@name}.
+          puts <<~EOS.unindent
+            Unlinking #{conflict} formula.
+            It is currently installed and conflicts with #{@name}.
           EOS
         end
         return false unless Bundle.system("brew", "unlink", conflict)

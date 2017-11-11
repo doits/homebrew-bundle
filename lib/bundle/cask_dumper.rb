@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Bundle
   module CaskDumper
     module_function
@@ -8,7 +10,7 @@ module Bundle
 
     def casks
       @casks ||= if Bundle.cask_installed?
-        `brew cask list -1 2>/dev/null`.split("\n").map { |cask| cask.chomp " (!)" }
+        `brew cask list --full-name 2>/dev/null`.split("\n").map { |cask| cask.chomp " (!)" }
       else
         []
       end

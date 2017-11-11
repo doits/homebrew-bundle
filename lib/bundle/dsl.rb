@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Bundle
   class Dsl
     class Entry
@@ -66,9 +68,9 @@ module Bundle
       end
 
       if failure.zero?
-        puts Formatter.success("Homebrew Bundle complete! #{success} Brewfile dependencies now installed.")
+        puts Formatter.success("Homebrew Bundle complete! #{success} Brewfile #{Bundle::Dsl.pluralize_dependency(success)} now installed.")
       else
-        puts Formatter.error("Homebrew Bundle failed! #{failure} Brewfile dependencies failed to install.")
+        puts Formatter.error("Homebrew Bundle failed! #{failure} Brewfile #{Bundle::Dsl.pluralize_dependency(failure)} failed to install.")
       end
 
       failure.zero?
@@ -113,7 +115,7 @@ module Bundle
     HOMEBREW_TAP_FORMULA_REGEX = %r{^([\w-]+)/([\w-]+)/([\w+-.@]+)$}
 
     def self.sanitize_brew_name(name)
-      name.downcase!
+      name = name.downcase
       if name =~ HOMEBREW_CORE_FORMULA_REGEX
         Regexp.last_match(1)
       elsif name =~ HOMEBREW_TAP_FORMULA_REGEX
@@ -127,7 +129,7 @@ module Bundle
     end
 
     def self.sanitize_tap_name(name)
-      name.downcase!
+      name = name.downcase
       if name =~ HOMEBREW_TAP_ARGS_REGEX
         "#{Regexp.last_match(1)}/#{Regexp.last_match(3)}"
       else
@@ -137,6 +139,10 @@ module Bundle
 
     def self.sanitize_cask_name(name)
       name.downcase
+    end
+
+    def self.pluralize_dependency(installed_count)
+      (installed_count == 1) ? "dependency" : "dependencies"
     end
   end
 end

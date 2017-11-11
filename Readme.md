@@ -1,6 +1,6 @@
 # Homebrew Bundle
 
-Bundler for non-Ruby dependencies from Homebrew
+Bundler for non-Ruby dependencies from Homebrew.
 
 [![Coverage Status](https://codecov.io/github/Homebrew/homebrew-bundle/coverage.svg)](https://codecov.io/github/Homebrew/homebrew-bundle)
 [![Build Status](https://travis-ci.org/Homebrew/homebrew-bundle.svg)](https://travis-ci.org/Homebrew/homebrew-bundle)
@@ -9,7 +9,7 @@ Bundler for non-Ruby dependencies from Homebrew
 
 [Homebrew](https://github.com/Homebrew/brew) or [Linuxbrew](https://github.com/Linuxbrew/brew) are used for installing the dependencies.
 Linuxbrew is a fork of Homebrew for Linux, while Homebrew only works on macOS.
-This tool is primarily developed for use with Homebrew on macOS but should work with Linuxbrew on Linux, too.
+This tool is developed for use with Homebrew on macOS but might work with Linuxbrew (but is unsupported so don't file Linux issues, please).
 
 [Homebrew Cask](https://github.com/caskroom/homebrew-cask) is optional and used for installing Mac applications.
 
@@ -17,9 +17,7 @@ This tool is primarily developed for use with Homebrew on macOS but should work 
 
 ## Install
 
-You can install as a Homebrew tap:
-
-    $ brew tap Homebrew/bundle
+`brew bundle` is automatically installed when run.
 
 ## Usage
 
@@ -34,7 +32,7 @@ cask_args appdir: "/Applications"
 tap "caskroom/cask"
 tap "telemachus/brew", "https://telemachus@bitbucket.org/telemachus/brew.git"
 brew "imagemagick"
-brew "mysql", restart_service: true, conflicts_with: ["homebrew/versions/mysql56"]
+brew "mysql@5.6", restart_service: true, link: true, conflicts_with: ["mysql"]
 brew "emacs", args: ["with-cocoa", "with-gnutls"]
 cask "google-chrome"
 cask "java" unless system "/usr/libexec/java_home --failfast"
@@ -105,4 +103,4 @@ Tests can be run with `bundle && bundle exec rake spec`
 
 ## Copyright
 
-Copyright (c) 2015 Homebrew maintainers and Andrew Nesbitt. See [LICENSE](https://github.com/Homebrew/homebrew-bundle/blob/master/LICENSE) for details.
+Copyright (c) Homebrew maintainers and Andrew Nesbitt. See [LICENSE](https://github.com/Homebrew/homebrew-bundle/blob/master/LICENSE) for details.

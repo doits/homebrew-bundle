@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "spec_helper"
 
 describe Bundle::Dsl do
@@ -6,11 +8,12 @@ describe Bundle::Dsl do
     allow(ARGV).to receive(:verbose?).and_return(true)
     # Keep in sync with the README
     dsl = Bundle::Dsl.new <<-EOS
+      # frozen_string_literal: true
       cask_args appdir: '/Applications'
       tap 'caskroom/cask'
       tap 'telemachus/brew', 'https://telemachus@bitbucket.org/telemachus/brew.git'
       brew 'imagemagick'
-      brew 'mysql', restart_service: true, conflicts_with: ['homebrew/versions/mysql56']
+      brew 'mysql@5.6', restart_service: true, link: true, conflicts_with: ['mysql']
       brew 'emacs', args: ['with-cocoa', 'with-gnutls']
       cask 'google-chrome'
       cask 'java' unless system '/usr/libexec/java_home --failfast'
@@ -22,8 +25,8 @@ describe Bundle::Dsl do
     expect(dsl.entries[1].name).to eql("telemachus/brew")
     expect(dsl.entries[1].options).to eql(clone_target: "https://telemachus@bitbucket.org/telemachus/brew.git")
     expect(dsl.entries[2].name).to eql("imagemagick")
-    expect(dsl.entries[3].name).to eql("mysql")
-    expect(dsl.entries[3].options).to eql(restart_service: true, conflicts_with: ["homebrew/versions/mysql56"])
+    expect(dsl.entries[3].name).to eql("mysql@5.6")
+    expect(dsl.entries[3].options).to eql(restart_service: true, link: true, conflicts_with: ["mysql"])
     expect(dsl.entries[4].name).to eql("emacs")
     expect(dsl.entries[4].options).to eql(args: ["with-cocoa", "with-gnutls"])
     expect(dsl.entries[5].name).to eql("google-chrome")
@@ -56,5 +59,11 @@ describe Bundle::Dsl do
   it ".sanitize_tap_name" do
     expect(Bundle::Dsl.send(:sanitize_tap_name, "homebrew/homebrew-foo")).to eql("homebrew/foo")
     expect(Bundle::Dsl.send(:sanitize_tap_name, "homebrew/foo")).to eql("homebrew/foo")
+  end
+
+  it ".pluralize_dependency" do
+    expect(Bundle::Dsl.send(:pluralize_dependency, 0)).to eql("dependencies")
+    expect(Bundle::Dsl.send(:pluralize_dependency, 1)).to eql("dependency")
+    expect(Bundle::Dsl.send(:pluralize_dependency, 5)).to eql("dependencies")
   end
 end
