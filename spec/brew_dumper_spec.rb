@@ -73,6 +73,8 @@ describe Bundle::BrewDumper do
         conflicts_with: [],
         pinned?: false,
         outdated?: false,
+        link?: nil,
+        poured_from_bottle?: false,
       )
     end
   end
@@ -152,7 +154,7 @@ describe Bundle::BrewDumper do
               "version" => "2.0",
               "used_options" => ["--with-a", "--with-b"],
               "built_as_bottle" => nil,
-              "poured_from_bottle" => true,
+              "poured_from_bottle" => false,
               "installed_as_dependency" => true,
               "installed_on_request" => true,
               "runtime_dependencies" => [],
@@ -195,6 +197,8 @@ describe Bundle::BrewDumper do
           conflicts_with: [],
           pinned?: false,
           outdated?: false,
+          link?: nil,
+          poured_from_bottle?: true,
         },
         name: "bar",
         full_name: "bar",
@@ -212,11 +216,13 @@ describe Bundle::BrewDumper do
         conflicts_with: [],
         pinned?: true,
         outdated?: true,
+        link?: false,
+        poured_from_bottle?: false,
       )
     end
 
-    it "dumps as foo and bar with args" do
-      expect(subject.dump).to eql("brew \"bar\", args: [\"with-a\", \"with-b\"]\nbrew \"homebrew/tap/foo\"")
+    it "dumps as foo and bar with args and link" do
+      expect(subject.dump).to eql("brew \"bar\", args: [\"with-a\", \"with-b\"], link: false\nbrew \"homebrew/tap/foo\"")
     end
 
     it "formula_info returns the formula" do
