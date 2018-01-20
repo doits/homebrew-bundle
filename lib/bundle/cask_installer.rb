@@ -68,7 +68,7 @@ module Bundle
       # is not found, like in the case above, it means an old version was
       # installed. When the CLI output of `brew cask` changes, this has to be
       # updated, too.
-      version_string = info_output.lines.first.chomp.sub(/^.*:./, '')
+      version_string = info_output.lines.first.chomp.sub(/^.*?:\s*/, '')
       %r{^/usr/local/.*/#{version_string} } =~ info_output
     end
   end
