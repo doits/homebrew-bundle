@@ -43,7 +43,7 @@ module Bundle
     end
 
     def self.cask_up_to_date?(name)
-      # Determine it by looking at info outpu
+      # Determine it by looking at info output
       info_output = `brew cask info #{name}`
 
       # `brew cask info` outputs `Not installed` when a cask's is not
